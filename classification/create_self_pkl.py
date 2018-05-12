@@ -54,7 +54,7 @@ def main():
     # with open(settings.VAL) as f:
     #     lines += f.read().splitlines()
     # train = [[] for _ in lines]
-    with open('../data/train.tags') as f:
+    with open('../data/icpr_data_char_1/train_15962.tags') as f:
         lines = f.read().splitlines()
 
     train = [[] for _ in lines]
@@ -73,7 +73,7 @@ def main():
 
     common_tools.multithreaded(load_train, range(len(lines)), num_thread=8)
     train = common_tools.reduce_sum(train)
-    with open(settings.TRAINVAL_PICKLE, 'wb') as f:
+    with open('self_synth.pkl', 'wb') as f:
         cPickle.dump(train, f)
     train = None  # release memory
 
