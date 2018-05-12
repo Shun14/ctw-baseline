@@ -3,8 +3,8 @@ TRAIN                  = '../data/annotations/train.jsonl'
 VAL                    = '../data/annotations/val.jsonl'
 TEST_CLASSIFICATION    = '../data/annotations/test_cls.jsonl'
 
-TRAINVAL_IMAGE_DIR     = '../data/images/trainval'
-TEST_IMAGE_DIR         = '../data/images/test'
+TRAINVAL_IMAGE_DIR     = '/mnt/zsz/ICPR/ctw/trainval'
+TEST_IMAGE_DIR         = '/mnt/zsz/ICPR/ctw/test'
 
 NUM_CHAR_CATES         = 1000
 PRODUCTS_ROOT          = 'products'

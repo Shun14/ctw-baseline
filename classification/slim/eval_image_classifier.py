@@ -17,19 +17,25 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+import os
 import math
 import numpy as np
 import six
 import tensorflow as tf
 import time
-
+from scipy import misc
+import json
 from chineselib import trainset
 from datasets import dataset_factory
 from nets import nets_factory
 from preprocessing import preprocessing_factory
 from six.moves import cPickle
 from tensorflow.python.training import saver as tf_saver
+import settings
+
+from pythonapi import common_tools
+import sys
+import eval
 
 slim = tf.contrib.slim
 
@@ -94,8 +100,25 @@ def main(_):
   if not FLAGS.dataset_dir:
     raise ValueError('You must supply the dataset directory with --dataset_dir')
 
-  with open(FLAGS.dataset_dir, 'rb') as f:
-    test_data = cPickle.load(f)
+#   with open(FLAGS.dataset_dir, 'rb') as f:
+#     test_data = cPickle.load(f)
+  
+  pic_dir = '/home/zsz/ctw-baseline/classification/products/crop_char'
+  pic_list = os.listdir(pic_dir)
+  pic_list.sort()
+  lines = len(pic_list)
+  test_data = [[] for _ in range(lines)]
+  
+  j = 0
+  for name in pic_list:
+      image = np.array(misc.imread(os.path.join(pic_dir, name)))
+      test_data[j].append(image)
+      test_data[j].append(None)
+      j += 1
+
+
+  print(len(test_data))
+  print(np.array(test_data).shape)
 
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
@@ -124,7 +147,9 @@ def main(_):
     assert FLAGS.eval_image_size is not None
     # assert FLAGS.eval_image_size == network_fn.default_image_size
     eval_image_size = FLAGS.eval_image_size or network_fn.default_image_size
-
+    # eval_image_size = 32
+    print('eval_image_size',eval_image_size)
+    
     images_holder = [tf.placeholder(tf.uint8, shape=(None, None, 3)) for i in range(FLAGS.batch_size)]
     # images = map(lambda holder: image_preprocessing_fn(holder, eval_image_size, eval_image_size), images_holder)
     images = [image_preprocessing_fn(images_holder[i], eval_image_size, eval_image_size) for i in range(FLAGS.batch_size)]
@@ -150,7 +175,8 @@ def main(_):
       checkpoint_path = FLAGS.checkpoint_path
 
     tf.logging.info('Evaluating %s' % checkpoint_path)
-    with tf.Session() as session:
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)
+    with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as session:
         start_time = time.time()
         saver = tf_saver.Saver(variables_to_restore)
         saver.restore(session, checkpoint_path)
@@ -159,11 +185,66 @@ def main(_):
         while lo != len(test_data):
             hi = min(len(test_data), lo + FLAGS.batch_size)
             feed_data = test_data[lo:hi] + [(np.zeros((3, 3, 3), dtype=np.uint8), None)] * (lo + FLAGS.batch_size - hi)
+
             logits = session.run(eval_ops, feed_dict={images_holder[i]: feed_data[i][0] for i in range(FLAGS.batch_size)})
             results.append(logits[:hi - lo])
             lo = hi
             tf.logging.info('evaluated: %d / %d' % (lo, len(test_data)))
         end_time = time.time()
+
+        logits = np.concatenate(results, axis=0)
+
+        assert settings.NUM_CHAR_CATES + 1 == logits.shape[1]
+        logits = logits[:, :settings.NUM_CHAR_CATES]
+        explogits = np.exp(np.minimum(logits, 70))
+        expsums = np.sum(explogits, axis=1) 
+        expsums.shape = (logits.shape[0], 1)
+        expsums = np.repeat(expsums, settings.NUM_CHAR_CATES, axis=1)
+        probs = explogits / expsums
+        argsorts = np.argsort(-logits, axis=1)
+        
+        lo = 0
+        model_name = 'inception_v4'
+        pred_file_name = os.path.join(settings.PRODUCTS_ROOT, 'self_predictions_{}.txt'.format(model_name))
+        with open(settings.CATES) as f:
+            cates = json.load(f)
+        
+#       j = 0
+#       for name in os.listdir(pic_dir):
+#           image = np.array(misc.imread(os.path.join(pic_dir, name)))
+#           test_data[j].append(image)
+#           test_data[j].append(None)
+#           j += 1
+        
+        max_prediction = 5
+
+        all_dict = [[] for _ in range(lines)]
+        print(lines)
+        for i in range(lines):
+            pred = argsorts[lo][:max_prediction]
+            prob = probs[lo][pred].tolist()
+            final_prob = max(prob)
+            print(prob)
+            index = prob.index(final_prob)
+            pred = list(map(lambda i: cates[i]['text'], pred.tolist()))
+            print(pred)
+            print(pic_list[i].split('_')[0])
+            print(index)
+            all_dict[int(pic_list[i].split('_')[0])].append((pic_list[i], str(pred[index].encode('utf-8').decode('utf-8'))))
+                
+                # 'gt_img:' + pic_list[i] +' ' +
+                # 'predictions:' + str(pred[index].encode('utf-8').decode('utf-8'))
+            i += 1
+            lo += 1
+        with open(pred_file_name, 'w') as fout:
+            for l in all_dict:
+                fout.write(str(l))
+                fout.write('\n')
+            
+        assert lo == logits.shape[0]
+
+
+
         with open(FLAGS.eval_dir, 'wb') as f:
             cPickle.dump({
                 'model_name': FLAGS.model_name,

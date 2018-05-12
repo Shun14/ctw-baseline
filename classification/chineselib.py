@@ -40,8 +40,10 @@ class TrainSet:
             else:  # label < settings.NUM_CHAR_CATES:
                 self.labels[label].append(image)
             self.num_samples += 1
+        j = 0
         for label in self.labels:
-            assert 0 < len(label)
+            assert 0 <= len(label)
+            j +=1 
         # self.preview()
 
     def preview(self):

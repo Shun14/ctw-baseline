@@ -26,9 +26,9 @@ cfg_common = {
     'learning_rate_decay_factor': '0.1',
     'decay_steps': '40000',
     'max_number_of_steps': '100000',
-    'per_process_gpu_memory_fraction': '1.0',
-    'save_summaries_secs': '120',
-    'save_interval_secs': '1200',
+    'per_process_gpu_memory_fraction': '0.4',
+    'save_summaries_secs': '3600',
+    'save_interval_secs': '3600',
 }
 
 cfgs = [
@@ -40,7 +40,7 @@ cfgs = [
     {
         'model_name': 'inception_v4',
         'train_image_size': '235',
-        'batch_size': '64',
+        'batch_size': '256',
     },
     {
         'model_name': 'overfeat',
