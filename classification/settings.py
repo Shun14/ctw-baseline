@@ -6,7 +6,7 @@ TEST_CLASSIFICATION    = '../data/annotations/test_cls.jsonl'
 TRAINVAL_IMAGE_DIR     = '/mnt/zsz/ICPR/ctw/trainval'
 TEST_IMAGE_DIR         = '/mnt/zsz/ICPR/ctw/test'
 
-NUM_CHAR_CATES         = 1000
+NUM_CHAR_CATES         = 7653
 PRODUCTS_ROOT          = 'products'
 CATES                  = 'products/cates.json'
 TRAINVAL_PICKLE        = 'products/trainval.pkl'

@@ -39,8 +39,8 @@ cfgs = [
     },
     {
         'model_name': 'inception_v4',
-        'train_image_size': '235',
-        'batch_size': '256',
+        'train_image_size': '32',
+        'batch_size': '32',
     },
     {
         'model_name': 'overfeat',
